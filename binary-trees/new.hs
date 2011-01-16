@@ -1,5 +1,5 @@
-{-# LANGUAGE BangPatterns#-}
 {-# OPTIONS -funbox-strict-fields #-}
+{-# LANGUAGE BangPatterns #-}
 --
 -- The Computer Language Benchmarks Game
 -- http://shootout.alioth.debian.org/
@@ -11,63 +11,40 @@
 import System
 import Data.Bits
 import Text.Printf
-import Control.Monad
-import Control.Concurrent
-import Control.Concurrent.MVar
-import Control.Parallel
 import Control.Parallel.Strategies
-import Foreign.Marshal.Alloc (mallocBytes,free)
-
+import Data.Array.Base
+import Data.Array.ST
+import Control.Monad
+import GHC.Conc
 --
 -- an artificially strict tree.
 --
 -- normally you would ensure the branches are lazy, but this benchmark
 -- requires strict allocation.
 --
-data Tree = Nil | Node !Int !Tree !Tree
+type Tree = UArray Int Int
 
+minN :: Int
 minN = 4
 
-io :: String -> Int -> Int -> String
+io :: String -> Int -> Int -> IO ()
 io s n t = printf "%s of depth %d\t check: %d\n" s n t
-io' :: String -> Int -> Int -> IO ()
-io' s n t = printf "%s of depth %d\t check: %d\n" s n t
 
+main :: IO ()
 main = do
     n <- getArgs >>= readIO . head
-    -- spacer <- mallocBytes 524288000 -- 500MB
-    -- free spacer
     let maxN     = max (minN + 2) n
         stretchN = maxN + 1
-
-    -- stretch memory tree
-    let c = check (make 0 stretchN)
-    io' "stretch tree" stretchN c
-
-    -- allocate a long lived tree
-    let !long    = make 0 maxN
-
-    -- allocate, walk, and deallocate many bottom-up binary trees
-    let vs = parMap rnf id $ depth minN maxN
-    -- let vs = depth minN maxN
-    
-    res <- parallel $ map (\((m,d,i)) -> return $! io (show m ++ "\t trees") d i) vs
-    mapM_ putStr res
-
+        c = check (make 0 stretchN)
+        -- allocate a long lived tree
+        !long    = make 0 maxN
+        -- allocate, walk, and deallocate many bottom-up binary trees
+        vs = depth minN maxN `using` parListN (numCapabilities*2) rdeepseq
+    -- ensure long is evaluates first
+    long `seq` io "stretch tree" stretchN c
+    mapM_ (\((m,d,i)) -> io (show m ++ "\t trees") d i) vs
     -- confirm the the long-lived binary tree still exists
-    io'  "long lived tree" maxN (check long)
-
-parallel :: [IO a] -> IO [a]
-parallel actions = do
-    vars <- forM actions $ \action -> do
-        var <- newEmptyMVar
-        forkIO $ do
-            answer <- action
-            return $! answer
-            putMVar var answer
-        return var
-    forM vars takeMVar
-
+    io "long lived tree" maxN (check long)
 
 -- generate many trees
 depth :: Int -> Int -> [(Int,Int,Int)]
@@ -78,20 +55,29 @@ depth d m
 
 -- allocate and check lots of trees
 sumT :: Int -> Int -> Int -> Int
-sumT !d 0 !t = t
-sumT !d !i !t = sumT d (i-1) (t + a + b)
+sumT _ 0 t = t
+sumT  d i t = sumT d (i-1) (t + a + b)
   where a = check (make i    d)
         b = check (make (-i) d)
 
--- traverse the tree, counting up the nodes
 check :: Tree -> Int
-check Nil          = 0
-check (Node i l r) = i + l' - r'
-    where !l' = check l
-          !r' = check r
+check arr = go 1 where
+    go !i | i >= end = 0
+    go i = let !i' = i+i
+               l = go $ i'   -- left child
+               r = go $ i'+1 -- right child
+         in indx i + l - r
+    !end = snd . bounds $ arr
+    indx i = unsafeAt arr (i-1)
 
--- build a tree
 make :: Int -> Int -> Tree
-make !i 0 = Node i Nil Nil
-make !i !d = Node i (make (i2-1) d2) (make i2 d2)
-  where !i2 = 2*i; !d2 = d-1
+make i d = runSTUArray $ do
+    let !end = 2^(d+1)
+    arr <- newArray (1,end) 0
+    writeA arr 1 i
+    forM_ [2..end] $ \ix -> do
+        p <- readA arr $ shiftR ix 1 -- parent
+        writeA arr  ix $! p + p + (if even ix then -1 else 0)
+    return arr where
+    readA arr ix = unsafeRead arr (ix-1)
+    writeA arr ix v = unsafeWrite arr (ix-1) v
