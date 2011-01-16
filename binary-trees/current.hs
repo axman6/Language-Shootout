@@ -1,20 +1,18 @@
-{-# LANGUAGE BangPatterns#-}
 {-# OPTIONS -funbox-strict-fields #-}
+{-# LANGUAGE BangPatterns #-}
 --
--- The Computer Language Benchmarks Game
+-- The Computer Language Shootout
 -- http://shootout.alioth.debian.org/
 --
 -- Contributed by Don Stewart
--- Modified by Stephen Blackheath to parallelize (a very tiny tweak)
 --
 
 import System
 import Data.Bits
 import Text.Printf
-import Control.Parallel.Strategies
 
 --
--- an artificially strict tree.
+-- an artificially strict tree. 
 --
 -- normally you would ensure the branches are lazy, but this benchmark
 -- requires strict allocation.
@@ -38,7 +36,7 @@ main = do
     let !long    = make 0 maxN
 
     -- allocate, walk, and deallocate many bottom-up binary trees
-    let vs = parMap rnf id $ depth minN maxN
+    let vs = depth minN maxN
     mapM_ (\((m,d,i)) -> io (show m ++ "\t trees") d i) vs
 
     -- confirm the the long-lived binary tree still exists
