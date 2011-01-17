@@ -1,0 +1,209 @@
+<?xml version="1.0"?>
+<acovea_config>
+    <acovea version="5.1" />
+    <description value="ghc 7.0.1 + LLVM + (x86_64)" version="1.2.0" />
+    <get_version value="ghc --numeric-version" />
+    <quoted_options value="false" />
+
+    <prime command="/usr/local/ghc/ghc-7.0.1/bin/ghc"
+           flags="-v0 --make -fforce-recomp -Odph -O2 -funbox-strict-fields -fllvm ACOVEA_OPTIONS -o ACOVEA_OUTPUT ACOVEA_INPUT" />
+
+    <baseline description="-optlo-O3 -optlc-O3"
+              command="/home/dons/bin/ghc"
+              flags="-v0 --make -fforce-recomp -O2 -funbox-strict-fields -fllvm -optlo-O3 -optlc-O3 -o ACOVEA_OUTPUT ACOVEA_INPUT" />
+
+    <baseline description="-fasm"
+              command="/home/dons/bin/ghc"
+              flags="-v0 --make -fforce-recomp -Odph -O2 -funbox-strict-fields -fasm -o ACOVEA_OUTPUT ACOVEA_INPUT" />
+
+    <!-- A list of flags that will be "evolved" by ACOVEA -->
+    <flags>
+
+    <!-- LLVM opt flags -->
+
+        <flag type="enum" value="-optlo-O1|-optlo-O2|-optlo-O3" />
+
+<!-- things we don't want to try:
+
+-        <flag type="simple" value="-optlo-disable-opt" />
+ -->
+
+<!--
+
+http://llvm.org/docs/Passes.html
+
+Analysis passes compute information that other passes can use or for debugging
+or program visualization purposes. Transform passes can use (or invalidate) the
+analysis passes. Transform passes all mutate the program in some way. Utility
+passes provides some utility but don't otherwise fit categorization. For
+example passes to extract functions to bitcode or write a module to bitcode are
+neither analysis nor transform passes.
+
+ -->
+
+        <flag type="simple" value="-optlo-disable-inlining" />
+        <flag type="simple" value="-optlo-disable-simplify-libcalls" />
+
+
+        <flag type="simple" value="-optlo-enable-full-load-pre" />
+        <flag type="simple" value="-optlo-enable-load-pre" />
+        <flag type="simple" value="-optlo-funit-at-a-time" />
+
+<!-- http://llvm.org/docs/Passes.html -->
+
+<!-- analysis passes: don't yield optimizations. remove from search space -->
+
+<!--        <flag type="simple" value="-optlo-aa-eval" />  -->
+        <flag type="simple" value="-optlo-anders-aa" />
+        <flag type="simple" value="-optlo-basicaa" />
+        <flag type="simple" value="-optlo-basiccg" /> 
+        <flag type="simple" value="-optlo-count-aa" /> 
+        <flag type="simple" value="-optlo-domfrontier" />
+        <flag type="simple" value="-optlo-domtree" />
+        <flag type="simple" value="-optlo-globalsmodref-aa" />
+        <flag type="simple" value="-optlo-instcount" />
+        <flag type="simple" value="-optlo-intervals" />
+        <flag type="simple" value="-optlo-loops" />
+        <flag type="simple" value="-optlo-memdep" />
+        <flag type="simple" value="-optlo-no-aa" />
+        <flag type="simple" value="-optlo-postdomfrontier" />
+        <flag type="simple" value="-optlo-postdomtree" />
+        <flag type="simple" value="-optlo-scalar-evolution" />
+<!-- needs extra info:        <flag type="simple" value="-optlo-targetdata" /> -->
+        <flag type="simple" value="-optlo-codegenprepare" />
+        <flag type="simple" value="-optlo-abcd" />
+        <flag type="simple" value="-optlo-always-inline" />
+        <flag type="simple" value="-optlo-functionattrs" />
+
+<!-- Transformation passes -->
+<!-- http://llvm.org/docs/Passes.html#transform -->
+
+        <flag type="simple" value="-optlo-adce" />
+        <flag type="simple" value="-optlo-argpromotion" />
+        <flag type="simple" value="-optlo-block-placement" />
+        <flag type="simple" value="-optlo-break-crit-edges" />
+<!-- unknown        <flag type="simple" value="-optlo-condprop" /> -->
+        <flag type="simple" value="-optlo-constmerge" />
+        <flag type="simple" value="-optlo-constprop" />
+        <flag type="simple" value="-optlo-dce" />
+        <flag type="simple" value="-optlo-deadargelim" />
+        <flag type="simple" value="-optlo-deadtypeelim" />
+        <flag type="simple" value="-optlo-die" />
+        <flag type="simple" value="-optlo-dse" />
+        <flag type="simple" value="-optlo-globaldce" />
+        <flag type="simple" value="-optlo-globalopt" />
+        <flag type="simple" value="-optlo-gvn" />
+<!-- unknown        <flag type="simple" value="-optlo-indmemrem" /> -->
+        <flag type="simple" value="-optlo-indvars" />
+        <flag type="simple" value="-optlo-inline" />
+        <flag type="simple" value="-optlo-instcombine" />
+        <flag type="simple" value="-optlo-internalize" />
+        <flag type="simple" value="-optlo-ipconstprop" />
+        <flag type="simple" value="-optlo-ipsccp" />
+        <flag type="simple" value="-optlo-jump-threading" />
+        <flag type="simple" value="-optlo-lcssa" />
+        <flag type="simple" value="-optlo-licm" />
+        <flag type="simple" value="-optlo-loop-deletion" />
+        <flag type="simple" value="-optlo-loop-index-split" />
+        <flag type="simple" value="-optlo-loop-reduce" />
+        <flag type="simple" value="-optlo-loop-rotate" />
+        <flag type="simple" value="-optlo-loop-unroll" />
+        <flag type="simple" value="-optlo-loop-unswitch" />
+        <flag type="simple" value="-optlo-loopsimplify" />
+        <flag type="simple" value="-optlo-mem2reg" />
+        <flag type="simple" value="-optlo-memcpyopt" />
+<!-- segfault        <flag type="simple" value="-optlo-mergereturn" /> -->
+        <flag type="simple" value="-optlo-reassociate" />
+        <flag type="simple" value="-optlo-reg2mem" />
+        <flag type="simple" value="-optlo-scalarrepl" />
+        <flag type="simple" value="-optlo-sccp" />
+        <flag type="simple" value="-optlo-simplify-libcalls" />
+        <flag type="simple" value="-optlo-simplifycfg" />
+        <flag type="simple" value="-optlo-sretpromotion" />
+        <flag type="simple" value="-optlo-tailcallelim" />
+        <flag type="simple" value="-optlo-tailduplicate" />
+        <flag type="simple" value="-optlo-prune-eh" />
+
+
+
+<!-- profiling related
+
+-insert-block-profiling	Insert instrumentation for block profiling
+-insert-edge-profiling	Insert instrumentation for edge profiling
+-insert-function-profiling	Insert instrumentation for function profiling
+-insert-null-profiling-rs	Measure profiling framework overhead
+-insert-rs-profiling-framework	Insert random sampling instrumentation framework
+
+ -->
+
+
+<!--
+ - not mentioned in manuals:
+
+        <flag type="simple" value="-optlo-instnamer" />
+        <flag type="simple" value="-optlo-iv-users" />
+        <flag type="simple" value="-optlo-lazy-value-info" />
+        <flag type="simple" value="-optlo-lda" />
+        <flag type="simple" value="-optlo-libcall-aa" />
+        <flag type="simple" value="-optlo-live-values" />
+        <flag type="simple" value="-optlo-loop-extract" />
+        <flag type="simple" value="-optlo-loop-extract-single" />
+        <flag type="simple" value="-optlo-lowerinvoke" />
+        <flag type="simple" value="-optlo-lowersetjmp" />
+        <flag type="simple" value="-optlo-lowerswitch" />
+        <flag type="simple" value="-optlo-mergefunc" />
+        <flag type="simple" value="-optlo-partial-inliner" />
+        <flag type="simple" value="-optlo-partialspecialization" />
+        <flag type="simple" value="-optlo-pointertracking" />
+        <flag type="simple" value="-optlo-preverify" />
+        <flag type="simple" value="-optlo-sccvn" />
+        <flag type="simple" value="-optlo-scev-aa" />
+        <flag type="simple" value="-optlo-simplify-libcalls-halfpowr" />
+        <flag type="simple" value="-optlo-split-geps" />
+        <flag type="simple" value="-optlo-ssi" />
+        <flag type="simple" value="-optlo-ssi-everything" />
+-->
+
+<!-- llvm compiler flags -->
+        <flag type="enum" value="-optlc-O0|-optlc-O1|-optlc-O2|-optlc-O3" />
+
+<!-- standard passes:
+
+ -preverify -domtree -verify -lowersetjmp -globalopt -ipsccp -deadargelim -instcombine -simplifycfg -basiccg -prune-eh -inline -functionattrs -argpromotion -domtree -domfrontier -scalarrepl -simplify-libcalls -instcombine -jump-threading -simplifycfg -instcombine -tailcallelim -simplifycfg -reassociate -domtree -loops -loopsimplify -domfrontier -loopsimplify -lcssa -loop-rotate -licm -lcssa -loop-unswitch -instcombine -scalar-evolution -loopsimplify -lcssa -iv-users -indvars -loop-deletion -loopsimplify -lcssa -loop-unroll -instcombine -memdep -gvn -memdep -memcpyopt -sccp -instcombine -jump-threading -domtree -memdep -dse -adce -simplifycfg -strip-dead-prototypes -print-used-types -deadtypeelim -globaldce -constmerge -preverify -domtree -verify
+
+-->
+
+<!--
+        <flag type="simple" value="-optlc-code-model=default" />
+        <flag type="simple" value="-optlc-disable-excess-fp-precision" />
+        <flag type="simple" value="-optlc-disable-fp-elim" />
+        <flag type="simple" value="-optlc-disable-spill-fusing" />
+        <flag type="simple" value="-optlc-enable-finite-only-fp-math" />
+        <flag type="simple" value="-optlc-enable-fp-mad" />
+        <flag type="simple" value="-optlc-enable-full-load-pre" />
+        <flag type="simple" value="-optlc-enable-load-pre" />
+        <flag type="simple" value="-optlc-enable-sjlj-eh" />
+        <flag type="simple" value="-optlc-enable-unsafe-fp-math" />
+        <flag type="simple" value="-optlc-join-liveintervals" />
+        <flag type="simple" value="-optlc-pre-RA-sched=default" />
+        <flag type="simple" value="-optlc-pre-RA-sched=list-burr" />
+        <flag type="simple" value="-optlc-pre-RA-sched=list-tdrr" />
+        <flag type="simple" value="-optlc-pre-RA-sched=source" />
+        <flag type="simple" value="-optlc-pre-RA-sched=list-td" />
+        <flag type="simple" value="-optlc-pre-RA-sched=fast" />
+        <flag type="simple" value="-optlc-regalloc=local" />
+        <flag type="simple" value="-optlc-regalloc=linearscan" />
+        <flag type="simple" value="-optlc-rewriter=local" />
+        <flag type="simple" value="-optlc-schedule-spills" />
+        <flag type="simple" value="-optlc-shrink-wrap" />
+        <flag type="simple" value="-optlc-spiller=standard" />
+        <flag type="simple" value="-optlc-realign-stack" />
+        <flag type="simple" value="-optlc-regalloc=pbqp" />
+        <flag type="simple" value="-optlc-unwind-tables" />
+        <flag type="simple" value="-optlc-spiller=splitting" />
+        <flag type="simple" value="-optlc-tailcallopt" />
+  -->
+
+    </flags>
+
+</acovea_config>
