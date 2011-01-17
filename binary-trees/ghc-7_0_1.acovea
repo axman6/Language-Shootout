@@ -5,16 +5,16 @@
     <get_version value="ghc --numeric-version" />
     <quoted_options value="false" />
 
-    <prime command="/usr/local/ghc/ghc-7.0.1/bin/ghc"
-           flags="-v0 --make -fforce-recomp -Odph -O2 -funbox-strict-fields -fllvm ACOVEA_OPTIONS -o ACOVEA_OUTPUT ACOVEA_INPUT" />
+    <prime command="ghc-7.0.1"
+           flags="-v0 --make -threaded -fforce-recomp -Odph -O2 -funbox-strict-fields -fllvm -with-rtsopts=\"-N -K128M -H\" ACOVEA_OPTIONS -o ACOVEA_OUTPUT ACOVEA_INPUT" />
 
     <baseline description="-optlo-O3 -optlc-O3"
-              command="/usr/local/ghc/ghc-7.0.1/bin/ghc"
-              flags="-v0 --make -fforce-recomp -O2 -funbox-strict-fields -fllvm -optlo-O3 -optlc-O3 -o ACOVEA_OUTPUT ACOVEA_INPUT" />
+              command="ghc-7.0.1"
+              flags="-v0 --make -threaded -fforce-recomp -O2 -funbox-strict-fields -fllvm -optlo-O3 -optlc-O3 -with-rtsopts=\"-N -K128M -H\" -o ACOVEA_OUTPUT ACOVEA_INPUT" />
 
     <baseline description="-fasm"
-              command="/usr/local/ghc/ghc-7.0.1/bin/ghc"
-              flags="-v0 --make -fforce-recomp -Odph -O2 -funbox-strict-fields -fasm -o ACOVEA_OUTPUT ACOVEA_INPUT" />
+              command="ghc-7.0.1"
+              flags="-v0 --make -threaded -fforce-recomp -Odph -O2 -funbox-strict-fields -fasm -with-rtsopts=\"-N -K128M -H\" -o ACOVEA_OUTPUT ACOVEA_INPUT" />
 
     <!-- A list of flags that will be "evolved" by ACOVEA -->
     <flags>
