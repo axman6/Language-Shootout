@@ -9,11 +9,11 @@
            flags="-v0 --make -fforce-recomp -Odph -O2 -funbox-strict-fields -fllvm ACOVEA_OPTIONS -o ACOVEA_OUTPUT ACOVEA_INPUT" />
 
     <baseline description="-optlo-O3 -optlc-O3"
-              command="/home/dons/bin/ghc"
+              command="/usr/local/ghc/ghc-7.0.1/bin/ghc"
               flags="-v0 --make -fforce-recomp -O2 -funbox-strict-fields -fllvm -optlo-O3 -optlc-O3 -o ACOVEA_OUTPUT ACOVEA_INPUT" />
 
     <baseline description="-fasm"
-              command="/home/dons/bin/ghc"
+              command="/usr/local/ghc/ghc-7.0.1/bin/ghc"
               flags="-v0 --make -fforce-recomp -Odph -O2 -funbox-strict-fields -fasm -o ACOVEA_OUTPUT ACOVEA_INPUT" />
 
     <!-- A list of flags that will be "evolved" by ACOVEA -->
@@ -54,7 +54,7 @@ neither analysis nor transform passes.
 <!-- analysis passes: don't yield optimizations. remove from search space -->
 
 <!--        <flag type="simple" value="-optlo-aa-eval" />  -->
-        <flag type="simple" value="-optlo-anders-aa" />
+        <!-- <flag type="simple" value="-optlo-anders-aa" /> -->
         <flag type="simple" value="-optlo-basicaa" />
         <flag type="simple" value="-optlo-basiccg" /> 
         <flag type="simple" value="-optlo-count-aa" /> 
@@ -71,7 +71,7 @@ neither analysis nor transform passes.
         <flag type="simple" value="-optlo-scalar-evolution" />
 <!-- needs extra info:        <flag type="simple" value="-optlo-targetdata" /> -->
         <flag type="simple" value="-optlo-codegenprepare" />
-        <flag type="simple" value="-optlo-abcd" />
+        <!-- <flag type="simple" value="-optlo-abcd" /> -->
         <flag type="simple" value="-optlo-always-inline" />
         <flag type="simple" value="-optlo-functionattrs" />
 
