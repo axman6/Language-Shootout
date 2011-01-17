@@ -1,5 +1,7 @@
 *.o
 *.hi
 *.prof
+*.beam
+*.class
 .DS_Store
 */bin/*
