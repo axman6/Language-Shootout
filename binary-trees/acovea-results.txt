@@ -1,0 +1,38 @@
+Acovea completed its analysis at 2011 Jan 18 05:30:43
+
+Optimistic options:
+
+                     -optlo-argpromotion  (1.623)
+
+ Pessimistic options:
+
+                    -optlo-O1  (-2.163)
+                    -optlo-O2  (-2.495)
+                    -optlo-O3  (-2.628)
+                    -optlc-O0  (-3.093)
+                    -optlc-O1  (-2.695)
+                    -optlc-O2  (-2.163)
+                    -optlc-O3  (-1.632)
+
+Acovea's Best-of-the-Best:
+
+ghc-7.0.1 -v0 --make -threaded -fforce-recomp -Odph -O2 -funbox-strict-fields -fllvm -with-rtsopts=-N -optlo-disable-inlining -optlo-enable-full-load-pre -optlo-enable-load-pre -optlo-domfrontier -optlo-domtree -optlo-instcount -optlo-loops -optlo-memdep -optlo-no-aa -optlo-postdomtree -optlo-scalar-evolution -optlo-functionattrs -optlo-block-placement -optlo-break-crit-edges -optlo-constprop -optlo-dce -optlo-deadargelim -optlo-deadtypeelim -optlo-dse -optlo-gvn -optlo-instcombine -optlo-internalize -optlo-lcssa -optlo-loop-unroll -optlo-loop-unswitch -optlo-loopsimplify -optlo-mem2reg -optlo-reassociate -optlo-reg2mem -optlo-scalarrepl -optlo-simplifycfg -optlo-tailcallelim -o /tmp/ACOVEA15EF09A9 new.hs
+
+Acovea's Common Options:
+    ghc-7.0.1 -v0 --make -threaded -fforce-recomp -Odph -O2 -funbox-strict-fields -fllvm -with-rtsopts=-N -optlo-memdep -optlo-functionattrs -optlo-dce -optlo-mem2reg -o /tmp/ACOVEA7E2629D1 new.hs 
+
+-optlo-O3 -optlc-O3:
+    ghc-7.0.1 -v0 --make -threaded -fforce-recomp -O2 -funbox-strict-fields -fllvm -optlo-O3 -optlc-O3 -with-rtsopts=-N -o /tmp/ACOVEA28251ABB new.hs 
+
+-fasm:
+    ghc-7.0.1 -v0 --make -threaded -fforce-recomp -Odph -O2 -funbox-strict-fields -fasm -with-rtsopts=-N -o /tmp/ACOVEA8CCCB03F new.hs 
+
+
+A relative graph of fitnesses:
+
+    Acovea's Best-of-the-Best: **************************************************    (8192)
+    Acovea's Common Options:
+    (-8192)
+             -optlo-O3 -optlc-O3: ************                                       (2048)
+                           -fasm:                                                    (-2048)
+
