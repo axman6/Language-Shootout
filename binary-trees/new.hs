@@ -12,8 +12,10 @@ import System
 import Data.Bits
 import Text.Printf
 import Control.Parallel.Strategies
+import Control.DeepSeq
 import Data.Array.Base
 import Data.Array.ST
+import Data.List
 import Control.Monad
 import GHC.Conc
 --
@@ -41,33 +43,39 @@ main = do
         -- allocate, walk, and deallocate many bottom-up binary trees
         vs          = depth minN maxN `using` parList rdeepseq
     -- ensure long is evaluates first
-    c `par`long `pseq` io "stretch tree" stretchN c
-    mapM_ (\((m,d,i)) -> io (show m ++ "\t trees") d i) vs
+    c `par` long `par` io "stretch tree" stretchN c
+    mapM_ (\(P3 m d i) -> io (show m ++ "\t trees") d i) vs
     -- confirm the the long-lived binary tree still exists
     io "long lived tree" maxN (check long)
 
+data P3 = P3 {-# UNPACK #-} !Int {-# UNPACK #-} !Int {-# UNPACK #-} !Int
+instance NFData P3 where
+    rnf (P3 x y z) = ()
+
 -- generate many trees
-depth :: Int -> Int -> [(Int,Int,Int)]
+depth :: Int -> Int -> [P3]
 depth d' m = go d' where
-    go d | d <= m    = (2*n,d,sumT d n 0) : depth (d+2) m
+    go d | d <= m    = P3 (2*n) d (sumT d n 0) : depth (d+2) m
          | otherwise = []
          where !n = 1 `shiftL` (m - d + minN)
 
 -- allocate and check lots of trees
 sumT :: Int -> Int -> Int -> Int
-sumT d i' t' = go i' t' where
-    go 0 t = t
-    go i t =  a `par` b `pseq` go (i-1) $! (t + a + b)
+sumT d i' t' = go i' [t'] where
+    go 0 t = foldl' (+) 0 t
+    go i t =  a `par` b `par` go (i-1) (a:b:t)
       where a = check (make i    d)
             b = check (make (-i) d)
 
 check :: Tree -> Int
 check arr = pgo 1 where
-    pgo i | i < 4 = l `par` r `pseq` indx i + l - r
-          | otherwise = go i where
-              l = pgo i'
-              r = pgo (i'+1)
-              !i' = i+i
+    pgo i
+        | i < 3 = l `par` r `pseq` indx i + l - r
+        | otherwise = go i
+        where
+            l = pgo i'
+            r = pgo (i'+1)
+            !i' = i+i
 
     go !i | i >= end = 0
     go i = let !i' = i+i
