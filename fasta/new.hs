@@ -37,6 +37,14 @@ main = do
     unfold      "THREE" "Homo sapiens frequency" (n*5) (mkCacher $ cdfize homs) g
 
 ------------------------------------------------------------------------
+im, ia, ic :: Int
+im  = 139968
+ia  = 3877
+ic  = 29573
+imd :: Float
+imd = 139968
+------------------------------------------------------------------------
+
 --
 -- lazily unfold the randomised dna sequences
 --
@@ -47,40 +55,32 @@ unfold lab ttl n probs gen =
 unroll :: Cacher -> Int -> Int -> IO Int
 unroll probs = loop where
     loop r 0  = return r
-    loop !r i = case {-# SCC "unfoldrN-scc" #-} S.unfoldrN m (Just . ({-# SCC "look-scc" #-}look)) r of
-                    (!s, Just r') -> do
-                        S.putStrLn s
-                        loop r' (i-m)
-                    (_,Nothing) -> error "Never happens"
-      where m = min i 60
+    loop !r i = case S.unfoldrN m (Just . look) r of
+                    (!s, Just r') -> S.putStrLn s >> loop r' (i-m)
+      where m      = min i 60
             look k = (choose probs newran, newseed) where
                 !newseed = (k * ia + ic) `rem` im
                 !newran  = fromIntegral newseed / imd
-
-
 
 data PPair = PPair !Word8 !Float
 data Cacher = C !(UArray Int Float) !(UArray Int Word8)
 
 mkCacher :: [PPair] -> Cacher
-mkCacher xs = C (array (0,len) (zip [(0::Int)..] (map (\(PPair _ f) -> f) xs)))
-                (array (0,len) (zip [(0::Int)..] (map (\(PPair w _) -> w) xs)))
+mkCacher xs =
+    C (array (0,len) (zip [(0::Int)..] (map (\(PPair _ f) -> f) xs)))
+      (array (0,len) (zip [(0::Int)..] (map (\(PPair w _) -> w) xs)))
     where len = length xs
 
 
 cdfize :: [(Word8,Float)] -> [PPair]
-cdfize ds = init cdf' ++ [PPair s 1.0]
-    where
-      PPair s _ = last cdf'
-      cdf' = (map (uncurry PPair) . snd . mapAccumL go 0) ds
-      go c (sym, prob) = (prob', (sym, prob')) where !prob' = c+prob
+cdfize ds = init cdf' ++ [PPair s 1.0] where
+    PPair s _ = last cdf'
+    cdf' = (map (uncurry PPair) . snd . mapAccumL go 0) ds
+    go c (sym, prob) = (prob', (sym, prob')) where !prob' = c+prob
 
-{-#INLINE choose #-}
 choose :: Cacher -> Float -> Word8
 choose (C freqs vals) p = unsafeAt vals (finder 0)
-    where finder n = if p <= unsafeAt freqs n
-                        then n
-                        else finder (n+1)
+    where finder n | p <= unsafeAt freqs n = n | otherwise = finder (n+1)
 
 ------------------------------------------------------------------------
 --
@@ -105,25 +105,7 @@ writeFasta label title width lbs = do
             (a,b) = S.splitAt (60-ln) (head ss)
 
 ------------------------------------------------------------------------
-im, ia, ic :: Int
-im  = 139968
-ia  = 3877
-ic  = 29573
-imd :: Float
-imd = 139968
 
-
-
-data R = R !Float !Int deriving Show
-
-
--- rand :: Int -> R
--- rand seed = R newran newseed
---     where
---         !newseed = (seed * ia + ic) `rem` im
---         !newran  = fromIntegral newseed / imd
-
-------------------------------------------------------------------------
 
 alu = C.pack
         "GGCCGGGCGCGGTGGCTCACGCCTGTAATCCCAGCACTTTGG\
