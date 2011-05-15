@@ -14,7 +14,7 @@
 -- Add:
 -- -optc-mfpmath=sse -optc-msse2
 --
-module Main where
+module Main (main) where
 
 import System
 import Data.Word
