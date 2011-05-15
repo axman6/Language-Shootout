@@ -35,6 +35,7 @@ io s n t = printf "%s of depth %d\t check: %d\n" s n t
 main :: IO ()
 main = do
     n <- getArgs >>= readIO . head
+    -- let n = 20
     let maxN        = max (minN + 2) n
         stretchN    = maxN + 1
         c           = check (make 0 stretchN)
@@ -68,31 +69,32 @@ sumT d i' t' = go i' [t'] where
             b = check (make (-i) d)
 
 check :: Tree -> Int
-check arr = pgo 1 where
-    pgo i
-        | i < 3 = l `par` r `pseq` indx i + l - r
-        | otherwise = go i
-        where
-            l = pgo i'
-            r = pgo (i'+1)
-            !i' = i+i
-
-    go !i | i >= end = 0
-    go i = let !i' = i+i
-               l = go $ i'   -- left child
-               r = go $ i'+1 -- right child
-         in indx i + l - r
+check !arr = pgo 1 where
+    pgo i | i < 4 = r `par` l `pseq` indx i + l - r
+          | otherwise = go i  where
+              l = {-# SCC "pgoleft" #-}  pgo i'
+              r = {-# SCC "pgoright" #-} pgo (i'+1)
+              !i' = i+i
+    go i | i < end =
+        case go (i+i) of
+            l -> case go (i+i+1) of
+                r -> case indx i of
+                    x -> l + x - r
+    go _ = 0
+    -- go !i x | i < end = let !i' = {-# SCC "i" #-} i + i in go i' (indx i + (negate $ go (i+i+1) x))
     !end = snd . bounds $ arr
     indx i = unsafeAt arr (i-1)
 
 make :: Int -> Int -> Tree
 make i d = runSTUArray $ do
-    let !end = 2^(d+1)
+    let !end = {-# SCC "2pow" #-} 2^(d+1)
     arr <- newArray (1,end) 0
     writeA arr 1 i
-    forM_ [2..end] $ \ix -> do
+    forM_ [2,4..end] $ \ix -> do
         p <- readA arr $ ix `shiftR` 1 -- parent
-        writeA arr  ix $! p + p + (if even ix then -1 else 0)
+        let !p' = p + p
+        writeA arr ix        $! pred p'
+        writeA arr (succ ix) $! p'
     return arr where
-    readA arr ix = unsafeRead arr (ix-1)
-    writeA arr ix v = unsafeWrite arr (ix-1) v
+    readA arr ix = unsafeRead arr (pred ix)
+    writeA arr ix v = unsafeWrite arr (pred ix) v
