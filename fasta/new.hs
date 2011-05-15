@@ -18,7 +18,7 @@ module Main where
 
 import System
 import Data.Word
-import Control.Arrow
+import Control.Arrow ((***))
 
 import Data.List
 
@@ -26,6 +26,9 @@ import qualified Data.ByteString.Lazy as L
 import qualified Data.ByteString.Lazy.Char8 as C (pack)
 import qualified Data.ByteString as S
 import Data.ByteString.Internal
+
+import Data.Array.Unboxed (UArray, array)
+import Data.Array.Base (unsafeAt)
 
 main = do
     n <- getArgs >>= readIO . head
@@ -42,61 +45,52 @@ unfold lab ttl n probs gen =
     putStrLn (">" ++ lab ++ " " ++ ttl) >> unroll probs gen n
 
 unroll :: Cacher -> Int -> Int -> IO Int
-unroll probs = loop
-    where
-        loop r 0   = return r
-        loop !r i = case S.unfoldrN m (Just . look probs) r of
-                        (!s, Just r') -> do
-                            S.putStrLn s
-                            loop r' (i-m)
-          where m = min i 60
+unroll probs = loop where
+    loop r 0  = return r
+    loop !r i = case {-# SCC "unfoldrN-scc" #-} S.unfoldrN m (Just . ({-# SCC "look-scc" #-}look)) r of
+                    (!s, Just r') -> do
+                        S.putStrLn s
+                        loop r' (i-m)
+                    (_,Nothing) -> error "Never happens"
+      where m = min i 60
+            look k = (choose probs newran, newseed) where
+                !newseed = (k * ia + ic) `rem` im
+                !newran  = fromIntegral newseed / imd
 
-look cr k = (choose cr newran, newseed)
-  where !newseed = (k * ia + ic) `rem` im
-        !newran  = fromIntegral newseed / imd
 
--- Chunk the list into parts, still can represent any list of the
--- symbol/probability pairs.
+
 data PPair = PPair !Word8 !Float
-data Cacher = Cacher !PPair !PPair !PPair !PPair Cacher -- [PPair]
-            | CacheList ![PPair]
+data Cacher = C !(UArray Int Float) !(UArray Int Word8)
 
-mkCacher (p1:p2:p3:p4:ds) = Cacher p1 p2 p3 p4 (mkCacher ds)
-mkCacher ds = CacheList ds
+mkCacher :: [PPair] -> Cacher
+mkCacher xs = C (array (0,len) (zip [(0::Int)..] (map (\(PPair _ f) -> f) xs)))
+                (array (0,len) (zip [(0::Int)..] (map (\(PPair w _) -> w) xs)))
+    where len = length xs
+
 
 cdfize :: [(Word8,Float)] -> [PPair]
 cdfize ds = init cdf' ++ [PPair s 1.0]
     where
       PPair s _ = last cdf'
       cdf' = (map (uncurry PPair) . snd . mapAccumL go 0) ds
-      go c (sym, prob) = (c + prob, (sym, c+prob))
+      go c (sym, prob) = (prob', (sym, prob')) where !prob' = c+prob
 
--- We still query the list in order, but we don't have to continually
--- ``uncons'' everything, we can do the first 4 at a time.
+{-#INLINE choose #-}
 choose :: Cacher -> Float -> Word8
-choose xs p = choose' xs
-        where
-            choose' :: Cacher -> Word8
-            choose' (Cacher (PPair s1 c1) (PPair s2 c2) (PPair s3 c3) (PPair s4 c4) ds)
-                | p <= c1 = s1
-                | p <= c2 = s2
-                | p <= c3 = s3
-                | p <= c4 = s4
-                | otherwise = choose' ds
-            choose' (CacheList ds) = chooseCdf ds
-
-            chooseCdf :: [PPair] -> Word8
-            chooseCdf ((PPair b f):xs) = if p < f then b else chooseCdf xs
+choose (C freqs vals) p = unsafeAt vals (finder 0)
+    where finder n = if p <= unsafeAt freqs n
+                        then n
+                        else finder (n+1)
 
 ------------------------------------------------------------------------
 --
 -- only demand as much of the infinite sequence as we require
 
 writeFasta :: [Char] -> [Char] -> Int -> L.ByteString -> IO ()
-writeFasta label title n s = do
+writeFasta label title width lbs = do
      putStrLn $ ">" ++ label ++ " " ++ title
-     let (t:ts) = L.toChunks s
-     go ts t n
+     let (t:ts) = L.toChunks lbs
+     go ts t width
   where
      go ss s n
         | l60 && n60 = S.putStrLn l               >> go ss        r (n-60)
