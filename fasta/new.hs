@@ -63,11 +63,12 @@ unroll probs = loop where
                 !newran  = fromIntegral newseed / imd
 
 data PPair = PPair !Word8 !Float
-data Cacher = C !(UArray Int Float) !(UArray Int Word8)
+data Cacher = C !Int !(UArray Int Float) !(UArray Int Word8)
 
 mkCacher :: [PPair] -> Cacher
 mkCacher xs =
-    C (array (0,len) (zip [(0::Int)..] (map (\(PPair _ f) -> f) xs)))
+    C len
+      (array (0,len) (zip [(0::Int)..] (map (\(PPair _ f) -> f) xs)))
       (array (0,len) (zip [(0::Int)..] (map (\(PPair w _) -> w) xs)))
     where len = length xs
 
@@ -79,7 +80,14 @@ cdfize ds = init cdf' ++ [PPair s 1.0] where
     go c (sym, prob) = (prob', (sym, prob')) where !prob' = c+prob
 
 choose :: Cacher -> Float -> Word8
-choose (C freqs vals) p = unsafeAt vals (finder 0)
+choose (C len freqs vals) p = unsafeAt vals (finder 0 len)
+    where
+        finder !low !high
+            | unsafeAt freqs (mid-1) < p && ple = mid
+            | ple =
+            where mid = low + ((high - low) `div` 2)
+                  ple = p <= unsafeAt freqs mid
+
     where finder n | p <= unsafeAt freqs n = n | otherwise = finder (n+1)
 
 ------------------------------------------------------------------------
