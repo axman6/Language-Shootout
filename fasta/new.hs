@@ -30,11 +30,22 @@ import Data.ByteString.Internal
 import Data.Array.Unboxed (UArray, array)
 import Data.Array.Base (unsafeAt)
 
+import Control.Concurrent (forkIO)
+import Control.Concurrent.Chan
+import Control.Concurrent.MVar
+
 main = do
     n <- getArgs >>= readIO . head
+    output <- newChan :: IO (Chan S.ByteString)
+    wait <- newEmptyMVar :: IO (MVar ())
+    forkIO $ do
+        g <- unfold output "TWO"   "IUB ambiguity codes"    (n*3) (mkCacher $ cdfize iubs) 42
+        unfold      output "THREE" "Homo sapiens frequency" (n*5) (mkCacher $ cdfize homs) g
+        putMVar wait ()
     writeFasta  "ONE"   "Homo sapiens alu"       (n*2) (L.cycle alu)
-    g <- unfold "TWO"   "IUB ambiguity codes"    (n*3) (mkCacher $ cdfize iubs) 42
-    unfold      "THREE" "Homo sapiens frequency" (n*5) (mkCacher $ cdfize homs) g
+    forkIO (printChan output)
+    takeMVar wait
+    where printChan mv = readChan mv >>= S.putStrLn >> printChan mv
 
 ------------------------------------------------------------------------
 im, ia, ic :: Int
@@ -48,15 +59,15 @@ imd = 139968
 --
 -- lazily unfold the randomised dna sequences
 --
-unfold :: [Char] -> [Char] -> Int -> Cacher -> Int -> IO Int
-unfold lab ttl n probs gen =
-    putStrLn (">" ++ lab ++ " " ++ ttl) >> unroll probs gen n
+unfold :: Chan S.ByteString -> [Char] -> [Char] -> Int -> Cacher -> Int -> IO Int
+unfold out lab ttl n probs gen =
+    putStrLn (">" ++ lab ++ " " ++ ttl) >> unroll out probs gen n
 
-unroll :: Cacher -> Int -> Int -> IO Int
-unroll probs = loop where
+unroll :: Chan S.ByteString -> Cacher -> Int -> Int -> IO Int
+unroll out probs = loop where
     loop r 0  = return r
     loop !r i = case S.unfoldrN m (Just . look) r of
-                    (!s, Just r') -> S.putStrLn s >> loop r' (i-m)
+                    (!s, Just r') -> writeChan out s >> loop r' (i-m)
       where m      = min i 60
             look k = (choose probs newran, newseed) where
                 !newseed = (k * ia + ic) `rem` im
