@@ -34,6 +34,13 @@ main = do
     unfold      "THREE" "Homo sapiens frequency" (n*5) (mkCacher $ cdfize homs) g
 
 ------------------------------------------------------------------------
+im, ia, ic :: Int
+im  = 139968
+ia  = 3877
+ic  = 29573
+imd :: Float
+imd = 139968
+------------------------------------------------------------------------
 --
 -- lazily unfold the randomised dna sequences
 --
@@ -43,22 +50,23 @@ unfold lab ttl n probs gen =
 
 unroll :: Cacher -> Int -> Int -> IO Int
 unroll probs = loop
-    where
-        loop r 0   = return r
-        loop !r i = case S.unfoldrN m (Just . look probs) r of
-                        (!s, Just r') -> do
-                            S.putStrLn s
-                            loop r' (i-m)
-          where m = min i 60
+  where
+    loop r 0  = return r
+    loop !r i =
+        case S.unfoldrN m (Just . look probs) r of
+            (!s, Just r') -> do
+                S.putStrLn s
+                loop r' (i-m)
+      where m = min i 60
 
 look cr k = (choose cr newran, newseed)
-  where !newseed = (k * ia + ic) `rem` im
-        !newran  = fromIntegral newseed / imd
+  where !newseed = {-# SCC "newseed" #-} (k * ia + ic) `rem` im
+        !newran  = {-# SCC "newran" #-}  fromIntegral newseed / imd
 
 -- Chunk the list into parts, still can represent any list of the
 -- symbol/probability pairs.
 data PPair = PPair !Word8 !Float
-data Cacher = Cacher !PPair !PPair !PPair !PPair Cacher -- [PPair]
+data Cacher = Cacher !PPair !PPair !PPair !PPair Cacher
             | CacheList ![PPair]
 
 mkCacher (p1:p2:p3:p4:ds) = Cacher p1 p2 p3 p4 (mkCacher ds)
@@ -68,25 +76,25 @@ cdfize :: [(Word8,Float)] -> [PPair]
 cdfize ds = init cdf' ++ [PPair s 1.0]
     where
       PPair s _ = last cdf'
-      cdf' = (map (uncurry PPair) . snd . mapAccumL go 0) ds
-      go c (sym, prob) = (c + prob, (sym, c+prob))
+      cdf' = (snd . mapAccumL go 0) ds
+      go c (sym, prob) = (prob', PPair sym prob') where !prob' = c+prob
 
 -- We still query the list in order, but we don't have to continually
 -- ``uncons'' everything, we can do the first 4 at a time.
 choose :: Cacher -> Float -> Word8
 choose xs p = choose' xs
-        where
-            choose' :: Cacher -> Word8
-            choose' (Cacher (PPair s1 c1) (PPair s2 c2) (PPair s3 c3) (PPair s4 c4) ds)
-                | p <= c1 = s1
-                | p <= c2 = s2
-                | p <= c3 = s3
-                | p <= c4 = s4
-                | otherwise = choose' ds
-            choose' (CacheList ds) = chooseCdf ds
+    where
+        choose' :: Cacher -> Word8
+        choose' (Cacher (PPair s1 c1) (PPair s2 c2) (PPair s3 c3) (PPair s4 c4) ds)
+            | p <= c1 = s1
+            | p <= c2 = s2
+            | p <= c3 = s3
+            | p <= c4 = s4
+            | otherwise = choose' ds
+        choose' (CacheList ds) = chooseCdf ds
 
-            chooseCdf :: [PPair] -> Word8
-            chooseCdf ((PPair b f):xs) = if p < f then b else chooseCdf xs
+        chooseCdf :: [PPair] -> Word8
+        chooseCdf ((PPair b f):xs) = if p < f then b else chooseCdf xs
 
 ------------------------------------------------------------------------
 --
@@ -109,25 +117,6 @@ writeFasta label title n s = do
             n60  = n  >= 60
             (l,r) = S.splitAt 60 s
             (a,b) = S.splitAt (60-ln) (head ss)
-
-------------------------------------------------------------------------
-im, ia, ic :: Int
-im  = 139968
-ia  = 3877
-ic  = 29573
-imd :: Float
-imd = 139968
-
-
-
-data R = R !Float !Int deriving Show
-
-
--- rand :: Int -> R
--- rand seed = R newran newseed
---     where
---         !newseed = (seed * ia + ic) `rem` im
---         !newran  = fromIntegral newseed / imd
 
 ------------------------------------------------------------------------
 
