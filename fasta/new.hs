@@ -66,35 +66,74 @@ look cr k = (choose cr newran, newseed)
 -- Chunk the list into parts, still can represent any list of the
 -- symbol/probability pairs.
 data PPair = PPair !Word8 !Float
-data Cacher = Cacher !PPair !PPair !PPair !PPair Cacher
-            | CacheList ![PPair]
+-- data Cacher = Cacher !PPair !PPair !PPair !PPair Cacher
+--             | CacheList ![PPair]
 
-mkCacher (p1:p2:p3:p4:ds) = Cacher p1 p2 p3 p4 (mkCacher ds)
-mkCacher ds = CacheList ds
+data Cacher = Branch !Float !Word8 !Cacher !Cacher
+            | Leaf !Float !Word8
 
-cdfize :: [(Word8,Float)] -> [PPair]
-cdfize ds = init cdf' ++ [PPair s 1.0]
+getProb :: Cacher -> Float
+getProb (Leaf p _) = p
+getProb (Branch p _ _ _) = p 
+
+getWord :: Cacher -> Word8
+getWord (Leaf _ w) = w
+getWord (Branch _ w _ _) = w
+
+mkCacher :: [Cacher] -> Cacher
+mkCacher [x] = x
+mkCacher xs = mkCacher (joiner xs)
+    where joiner (x:y:zs) = Branch (getProb x) (getWord x) x y : joiner zs
+          joiner zs = zs
+
+printCacher :: Cacher -> String
+printCacher (Leaf p w) = show p ++ " -> " ++ show w
+printCacher (Branch p w l r) =
+        show p ++ " -> " ++ show w ++ "\n" ++ (indent (printCacher l) ++ indent (printCacher r))
+    where indent = unlines . map ("|   "++) . lines
+
+-- mkCacher (p1:p2:p3:p4:ds) = Cacher p1 p2 p3 p4 (mkCacher ds)
+-- mkCacher ds = CacheList ds
+
+cdfize :: [(Word8,Float)] -> [Cacher]
+cdfize ds = init cdf' ++ [Leaf 1.0 s]
     where
-      PPair s _ = last cdf'
+      Leaf _ s = last cdf'
       cdf' = (snd . mapAccumL go 0) ds
-      go c (sym, prob) = (prob', PPair sym prob') where !prob' = c+prob
+      go c (sym, prob) = (prob', Leaf prob' sym) where !prob' = c+prob
 
 -- We still query the list in order, but we don't have to continually
 -- ``uncons'' everything, we can do the first 4 at a time.
 choose :: Cacher -> Float -> Word8
-choose xs p = choose' xs
+choose ch p = choose' ch
     where
-        choose' :: Cacher -> Word8
-        choose' (Cacher (PPair s1 c1) (PPair s2 c2) (PPair s3 c3) (PPair s4 c4) ds)
-            | p <= c1 = s1
-            | p <= c2 = s2
-            | p <= c3 = s3
-            | p <= c4 = s4
-            | otherwise = choose' ds
-        choose' (CacheList ds) = chooseCdf ds
-
-        chooseCdf :: [PPair] -> Word8
-        chooseCdf ((PPair b f):xs) = if p < f then b else chooseCdf xs
+        choose' (Branch q w l r) =
+            case compare p q of
+                LT -> choose' l
+                GT -> choose'' r w
+                EQ -> w
+        choose' (Leaf _ w) = w
+        choose'' (Branch q w l r) w' =
+            case compare p q of
+                LT -> w'
+                GT -> choose'' l w
+                EQ -> w
+        choose'' (Leaf q w) w' = if p <= q then w else w'
+        
+        
+-- choose xs p = choose' xs
+--     where
+--         choose' :: Cacher -> Word8
+--         choose' (Cacher (PPair s1 c1) (PPair s2 c2) (PPair s3 c3) (PPair s4 c4) ds)
+--             | p <= c1 = s1
+--             | p <= c2 = s2
+--             | p <= c3 = s3
+--             | p <= c4 = s4
+--             | otherwise = choose' ds
+--         choose' (CacheList ds) = chooseCdf ds
+-- 
+--         chooseCdf :: [PPair] -> Word8
+--         chooseCdf ((PPair b f):xs) = if p < f then b else chooseCdf xs
 
 ------------------------------------------------------------------------
 --
